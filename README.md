@@ -1,4 +1,4 @@
-# UE4TcpSocketPlugin
+# UE4 TCP Socket Plugin
 Tcp Socket Plugin facilitates communication with a TCP server purely in blueprints.
 
 # List of Features
