@@ -154,7 +154,7 @@ public:
 	virtual void Exit() override;
 	// End FRunnable interface	
 
-	/** Shuts down the thread. Static so it can easily be called from outside the thread context */
+	/** Shuts down the thread */
 	void SocketShutdown();
 
 	/* Getter for bConnected */
