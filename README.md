@@ -14,5 +14,5 @@ Create a blueprint actor inheriting from TcpSocketConnection, drop it into level
 ![Alt text](/functionality.jpg?raw=true "Functionality")
 
 # Platforms
-Intended for all platforms that support sockets and multithreading, which is most of them, except HTML5.
+Intended for all platforms that support sockets and multithreading, which is most of them, except HTML5. <br />
 Tested on platforms: Windows
