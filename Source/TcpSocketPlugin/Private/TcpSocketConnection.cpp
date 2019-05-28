@@ -15,14 +15,12 @@ ATcpSocketConnection::ATcpSocketConnection()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
-
 }
 
 // Called when the game starts or when spawned
 void ATcpSocketConnection::BeginPlay()
 {
-	Super::BeginPlay();
-	
+	Super::BeginPlay();	
 }
 
 void ATcpSocketConnection::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -51,8 +49,8 @@ void ATcpSocketConnection::Connect(const FString& ipAddress, int32 port, const F
 
 	ConnectionId = TcpWorkers.Num();
 
-	TSharedRef<FTcpSocketWorker> worker(new FTcpSocketWorker(ipAddress, port, this, ConnectionId, ReceiveBufferSize, SendBufferSize, TimeBetweenTicks));
-	
+	TWeakObjectPtr<ATcpSocketConnection> thisWeakObjPtr = TWeakObjectPtr<ATcpSocketConnection>(this);
+	TSharedRef<FTcpSocketWorker> worker(new FTcpSocketWorker(ipAddress, port, thisWeakObjPtr, ConnectionId, ReceiveBufferSize, SendBufferSize, TimeBetweenTicks));
 	TcpWorkers.Add(ConnectionId, worker);
 	worker->Start();
 }
@@ -63,7 +61,7 @@ void ATcpSocketConnection::Disconnect(int32 ConnectionId)
 	if (worker)
 	{
 		UE_LOG(LogTemp, Log, TEXT("Tcp Socket: Disconnected from server."));
-		worker->Get().SocketShutdown();
+		worker->Get().Stop();
 		TcpWorkers.Remove(ConnectionId);
 	}
 }
@@ -89,8 +87,11 @@ bool ATcpSocketConnection::SendData(int32 ConnectionId /*= 0*/, TArray<uint8> Da
 	return false;
 }
 
-void ATcpSocketConnection::ExecuteOnMessageReceived(int32 ConnectionId)
+void ATcpSocketConnection::ExecuteOnMessageReceived(int32 ConnectionId, TWeakObjectPtr<ATcpSocketConnection> thisObj)
 {
+	if (!thisObj.IsValid())
+		return;
+
 	TArray<uint8> msg = TcpWorkers[ConnectionId]->ReadFromInbox();
 	MessageReceivedDelegate.ExecuteIfBound(ConnectionId, msg);
 }
@@ -255,13 +256,23 @@ void ATcpSocketConnection::PrintToConsole(FString Str, bool Error)
 	}
 }
 
-void ATcpSocketConnection::ExecuteOnConnected(int32 WorkerId)
+void ATcpSocketConnection::ExecuteOnConnected(int32 WorkerId, TWeakObjectPtr<ATcpSocketConnection> thisObj)
 {
+	if (!thisObj.IsValid())
+		return;
+
 	ConnectedDelegate.ExecuteIfBound(WorkerId);
 }
 
-void ATcpSocketConnection::ExecuteOnDisconnected(int32 WorkerId)
+void ATcpSocketConnection::ExecuteOnDisconnected(int32 WorkerId, TWeakObjectPtr<ATcpSocketConnection> thisObj)
 {
+	if (!thisObj.IsValid())
+		return;
+
+	if (TcpWorkers.Contains(WorkerId))
+	{		
+		TcpWorkers.Remove(WorkerId);		
+	}
 	DisconnectedDelegate.ExecuteIfBound(WorkerId);
 }
 
@@ -271,10 +282,10 @@ bool FTcpSocketWorker::isConnected()
 	return bConnected;
 }
 
-FTcpSocketWorker::FTcpSocketWorker(FString inIp, const int32 inPort, ATcpSocketConnection* InOwner, int32 inId, int32 inRecvBufferSize, int32 inSendBufferSize, float inTimeBetweenTicks)
+FTcpSocketWorker::FTcpSocketWorker(FString inIp, const int32 inPort, TWeakObjectPtr<ATcpSocketConnection> InOwner, int32 inId, int32 inRecvBufferSize, int32 inSendBufferSize, float inTimeBetweenTicks)
 	: ipAddress(inIp)
 	, port(inPort)
-	, ThePC(InOwner)
+	, ThreadSpawnerActor(InOwner)
 	, id(inId)
 	, RecvBufferSize(inRecvBufferSize)
 	, SendBufferSize(inSendBufferSize)
@@ -286,6 +297,13 @@ FTcpSocketWorker::FTcpSocketWorker(FString inIp, const int32 inPort, ATcpSocketC
 FTcpSocketWorker::~FTcpSocketWorker()
 {
 	AsyncTask(ENamedThreads::GameThread, []() {	ATcpSocketConnection::PrintToConsole("Tcp socket thread was destroyed.", false); });
+	Stop();
+	if (Thread)
+	{
+		Thread->WaitForCompletion();
+		delete Thread;
+		Thread = nullptr;
+	}
 }
 
 void FTcpSocketWorker::Start()
@@ -348,7 +366,7 @@ uint32 FTcpSocketWorker::Run()
 			if (bConnected) 
 			{
 				AsyncTask(ENamedThreads::GameThread, [this]() {
-					ThePC->ExecuteOnConnected(id);
+					ThreadSpawnerActor.Get()->ExecuteOnConnected(id, ThreadSpawnerActor);
 				});
 			}
 			else 
@@ -429,7 +447,7 @@ uint32 FTcpSocketWorker::Run()
 		{
 			Inbox.Enqueue(receivedData);
 			AsyncTask(ENamedThreads::GameThread, [this]() {
-				ThePC->ExecuteOnMessageReceived(id);
+				ThreadSpawnerActor.Get()->ExecuteOnMessageReceived(id, ThreadSpawnerActor);
 			});			
 		}
 
@@ -439,8 +457,10 @@ uint32 FTcpSocketWorker::Run()
 	bConnected = false;
 
 	AsyncTask(ENamedThreads::GameThread, [this]() {
-		ThePC->ExecuteOnDisconnected(id);
+		ThreadSpawnerActor.Get()->ExecuteOnDisconnected(id, ThreadSpawnerActor);
 	});
+
+	SocketShutdown();
 	
 	return 0;
 }
@@ -470,19 +490,6 @@ bool FTcpSocketWorker::BlockingSend(const uint8* Data, int32 BytesToSend)
 
 void FTcpSocketWorker::SocketShutdown()
 {
-	if (bRun)
-	{
-		bRun = false;
-	}
-
-	// let the thread shutdown on its own
-	if (Thread != nullptr)
-	{
-		Thread->WaitForCompletion();
-		delete Thread;
-		Thread = nullptr;
-	}
-
 	// if there is still a socket, close it so our peer will get a quick disconnect notification
 	if (Socket)
 	{

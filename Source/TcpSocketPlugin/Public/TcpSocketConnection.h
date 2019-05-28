@@ -5,7 +5,9 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "HAL/Runnable.h"
+#include "HAL/ThreadSafeBool.h"
 #include "Containers/Queue.h"
+#include "UObject/WeakObjectPtrTemplates.h"
 #include "TcpSocketConnection.generated.h"
 
 DECLARE_DYNAMIC_DELEGATE_OneParam(FTcpSocketDisconnectDelegate, int32, ConnectionId);
@@ -45,14 +47,24 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Socket") // use meta to set first default param to 0
 	bool SendData(int32 ConnectionId, TArray<uint8> DataToSend);
 
-	UFUNCTION(Category = "Socket")
-	void ExecuteOnConnected(int32 WorkerId);
+	/* 
+	When hitting Stop in PIE while a connection is being established (it's a blocking operation that takes a while to timeout),
+	our ATcpSocketConnection actor will be destroyed, an then the thread will send a message through AsyncTask to call ExecuteOnConnected, 
+	ExecuteOnDisconnected, or ExecuteOnMessageReceived.
 
-	UFUNCTION(Category = "Socket")
-	void ExecuteOnDisconnected(int32 WorkerId);
+	When we enter their code, "this" will point to random memory.
+	So to avoid that problem, we also send back a weak pointer as well. If the pointer is valid, we're ok.
+	This is why the three methods below have a TWeakObjectPtr.
+	*/
 
-	UFUNCTION(Category = "Socket")
-	void ExecuteOnMessageReceived(int32 ConnectionId);
+	//UFUNCTION(Category = "Socket")	
+	void ExecuteOnConnected(int32 WorkerId, TWeakObjectPtr<ATcpSocketConnection> thisObj);
+
+	//UFUNCTION(Category = "Socket")
+	void ExecuteOnDisconnected(int32 WorkerId, TWeakObjectPtr<ATcpSocketConnection> thisObj);
+
+	//UFUNCTION(Category = "Socket")
+	void ExecuteOnMessageReceived(int32 ConnectionId, TWeakObjectPtr<ATcpSocketConnection> thisObj);
 
 	/*UFUNCTION(BlueprintPure, meta = (DisplayName = "Append Bytes", CommutativeAssociativeBinaryOperator = "true"), Category = "Socket")
 	static TArray<uint8> Concat_BytesBytes(const TArray<uint8>& A, const TArray<uint8>& B);*/
@@ -120,7 +132,7 @@ private:
 	class FSocket* Socket;
 	FString ipAddress;
 	int port;
-	ATcpSocketConnection* ThePC;
+	TWeakObjectPtr<ATcpSocketConnection> ThreadSpawnerActor;
 	int32 id;
 	int32 RecvBufferSize;
 	int32 ActualRecvBufferSize;
@@ -135,7 +147,7 @@ private:
 public:
 
 	//Constructor / Destructor
-	FTcpSocketWorker(FString inIp, const int32 inPort, ATcpSocketConnection* InOwner, int32 inId, int32 inRecvBufferSize, int32 inSendBufferSize, float inTimeBetweenTicks);
+	FTcpSocketWorker(FString inIp, const int32 inPort, TWeakObjectPtr<ATcpSocketConnection> InOwner, int32 inId, int32 inRecvBufferSize, int32 inSendBufferSize, float inTimeBetweenTicks);
 	virtual ~FTcpSocketWorker();
 
 	/*  Starts processing of the connection. Needs to be called immediately after construction	 */
@@ -165,7 +177,7 @@ private:
 	bool BlockingSend(const uint8* Data, int32 BytesToSend);
 
 	/** thread should continue running */
-	bool bRun = false;
+	FThreadSafeBool bRun = false;
 
 	/** Critical section preventing multiple threads from sending simultaneously */
 	FCriticalSection SendCriticalSection;
