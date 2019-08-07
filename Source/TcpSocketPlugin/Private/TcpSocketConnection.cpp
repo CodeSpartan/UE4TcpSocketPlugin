@@ -9,6 +9,7 @@
 #include "Async/Async.h"
 #include <string>
 #include "Logging/MessageLog.h"
+#include "TcpSocketSettings.h"
 
 // Sets default values
 ATcpSocketConnection::ATcpSocketConnection()
@@ -244,7 +245,7 @@ FString ATcpSocketConnection::Message_ReadString(TArray<uint8>& Message, int32 B
 
 void ATcpSocketConnection::PrintToConsole(FString Str, bool Error)
 {
-	if (Error)
+	if (Error && GetDefault<UTcpSocketSettings>()->bPostErrorsToMessageLog)
 	{
 		auto messageLog = FMessageLog("Tcp Socket Plugin");
 		messageLog.Open(EMessageSeverity::Error, true);
