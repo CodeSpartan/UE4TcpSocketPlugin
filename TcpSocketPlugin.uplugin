@@ -9,7 +9,7 @@
 	"CreatedByURL": "",
 	"DocsURL": "",
 	"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/content/462c2952e71c4548ae324cb624c74aa6",
-	"EngineVersion" : "4.23.0",
+	"EngineVersion" : "4.24.0",
 	"SupportURL": "",
 	"CanContainContent": false,
 	"IsBetaVersion": false,
@@ -18,10 +18,7 @@
 		{
 			"Name": "TcpSocketPlugin",
 			"Type": "Runtime",
-			"LoadingPhase": "PreLoadingScreen",
-			"BlacklistPlatforms": [
-				"HTML5"
-			]
+			"LoadingPhase": "PreLoadingScreen"
 		}
 	]
 }
