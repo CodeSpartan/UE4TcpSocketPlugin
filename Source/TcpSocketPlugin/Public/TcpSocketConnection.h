@@ -12,7 +12,7 @@
 
 DECLARE_DYNAMIC_DELEGATE_OneParam(FTcpSocketDisconnectDelegate, int32, ConnectionId);
 DECLARE_DYNAMIC_DELEGATE_OneParam(FTcpSocketConnectDelegate, int32, ConnectionId);
-DECLARE_DYNAMIC_DELEGATE_TwoParams(FTcpSocketReceivedMessageDelegate, int32, ConnectionId, const TArray<uint8>&, Message);
+DECLARE_DYNAMIC_DELEGATE_TwoParams(FTcpSocketReceivedMessageDelegate, int32, ConnectionId, UPARAM(ref) TArray<uint8>&, Message);
 
 UCLASS(Blueprintable, BlueprintType)
 class TCPSOCKETPLUGIN_API ATcpSocketConnection : public AActor
@@ -94,11 +94,17 @@ public:
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Read Byte", Keywords = "read byte int8 uint8"), Category = "Socket")
 	static uint8 Message_ReadByte(UPARAM(ref) TArray<uint8>& Message);
 
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Read Bytes", Keywords = "read bytes"), Category = "Socket")
+	static bool Message_ReadBytes(int32 NumBytes, UPARAM(ref) TArray<uint8>& Message, TArray<uint8>& ReturnArray);
+
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Read Float", Keywords = "read float"), Category = "Socket")
 	static float Message_ReadFloat(UPARAM(ref) TArray<uint8>& Message);
 
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Read String", Keywords = "read string"), Category = "Socket")
 	static FString Message_ReadString(UPARAM(ref) TArray<uint8>& Message, int32 StringLength);
+
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	bool isConnected(int32 ConnectionId);
 
 	/* Used by the separate threads to print to console on the main thread. */
 	static void PrintToConsole(FString Str, bool Error);
@@ -111,8 +117,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Socket")
 	int32 ReceiveBufferSize = 16384;
 
+	/* Time between ticks. Please account for the fact that it takes 1ms to wake up on a modern PC, so 0.01f would effectively be 0.011f */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Socket")
-	float TimeBetweenTicks = 0.015f;
+	float TimeBetweenTicks = 0.008f;
 
 private:
 	TMap<int32, TSharedRef<class FTcpSocketWorker>> TcpWorkers;
@@ -141,8 +148,9 @@ private:
 	float TimeBetweenTicks;
 	bool bConnected = false;	
 
-	TQueue<TArray<uint8>, EQueueMode::Spsc> Inbox; // Messages we read from socket. Runner thread is producer, main thread is consumer.
-	TQueue<TArray<uint8>, EQueueMode::Spsc> Outbox; // Messages to send to socket. Main thread is producer, runner thread is consumer.
+	// SPSC = single producer, single consumer.
+	TQueue<TArray<uint8>, EQueueMode::Spsc> Inbox; // Messages we read from socket and send to main thread. Runner thread is producer, main thread is consumer.
+	TQueue<TArray<uint8>, EQueueMode::Spsc> Outbox; // Messages to send to socket from main thread. Main thread is producer, runner thread is consumer.
 
 public:
 

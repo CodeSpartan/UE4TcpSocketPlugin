@@ -90,8 +90,17 @@ bool ATcpSocketConnection::SendData(int32 ConnectionId /*= 0*/, TArray<uint8> Da
 
 void ATcpSocketConnection::ExecuteOnMessageReceived(int32 ConnectionId, TWeakObjectPtr<ATcpSocketConnection> thisObj)
 {
+	// the second check is for when we quit PIE, we may get a message about a disconnect, but it's too late to act on it, because the thread has already been killed
 	if (!thisObj.IsValid())
+		return;	
+		
+	// how to crash:
+	// 1 connect with both clients
+	// 2 stop PIE
+	// 3 close editor
+	if (!TcpWorkers.Contains(ConnectionId)) {
 		return;
+	}
 
 	TArray<uint8> msg = TcpWorkers[ConnectionId]->ReadFromInbox();
 	MessageReceivedDelegate.ExecuteIfBound(ConnectionId, msg);
@@ -195,6 +204,17 @@ uint8 ATcpSocketConnection::Message_ReadByte(TArray<uint8>& Message)
 	return result;
 }
 
+bool ATcpSocketConnection::Message_ReadBytes(int32 NumBytes, TArray<uint8>& Message, TArray<uint8>& returnArray)
+{
+	for (int i = 0; i < NumBytes; i++) {
+		if (Message.Num() >= 1)
+			returnArray.Add(Message_ReadByte(Message));
+		else
+			return false;
+	}
+	return true;
+}
+
 float ATcpSocketConnection::Message_ReadFloat(TArray<uint8>& Message)
 {
 	if (Message.Num() < 4)
@@ -241,6 +261,13 @@ FString ATcpSocketConnection::Message_ReadString(TArray<uint8>& Message, int32 B
 
 	std::string cstr(reinterpret_cast<const char*>(StringAsArray.GetData()), StringAsArray.Num());	
 	return FString(UTF8_TO_TCHAR(cstr.c_str()));
+}
+
+bool ATcpSocketConnection::isConnected(int32 ConnectionId)
+{
+	if (TcpWorkers.Contains(ConnectionId))
+		return TcpWorkers[ConnectionId]->isConnected();
+	return false;
 }
 
 void ATcpSocketConnection::PrintToConsole(FString Str, bool Error)
@@ -344,6 +371,8 @@ uint32 FTcpSocketWorker::Run()
 
 	while (bRun)
 	{
+		FDateTime timeBeginningOfTick = FDateTime::UtcNow();
+
 		// Connect
 		if (!bConnected)
 		{
@@ -385,9 +414,8 @@ uint32 FTcpSocketWorker::Run()
 			continue;
 		}
 
-
 		// check if we weren't disconnected from the socket
-		Socket->SetNonBlocking(true);		
+		Socket->SetNonBlocking(true); // set to NonBlocking, because Blocking can't check for a disconnect for some reason
 		int32 t_BytesRead;
 		uint8 t_Dummy;
 		if (!Socket->Recv(&t_Dummy, 1, t_BytesRead, ESocketReceiveFlags::Peek))
@@ -395,23 +423,23 @@ uint32 FTcpSocketWorker::Run()
 			bRun = false;
 			continue;
 		}
-		Socket->SetNonBlocking(false);	
+		Socket->SetNonBlocking(false);	// set back to Blocking
 
 		// if Outbox has something to send, send it
-		if (!Outbox.IsEmpty())
+		while (!Outbox.IsEmpty())
 		{
 			TArray<uint8> toSend; 
 			Outbox.Dequeue(toSend);
 
 			if (!BlockingSend(toSend.GetData(), toSend.Num()))
 			{
+				// if sending failed, stop running the thread
 				bRun = false;
 				continue;
 			}
 		}
 
-		// if we can read something
-		ISocketSubsystem* SocketSubsystem = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM);
+		// if we can read something		
 		uint32 PendingDataSize = 0;
 		TArray<uint8> receivedData;
 
@@ -432,6 +460,7 @@ uint32 FTcpSocketWorker::Run()
 			int32 BytesRead = 0;
 			if (!Socket->Recv(receivedData.GetData() + BytesReadTotal, ActualRecvBufferSize, BytesRead))
 			{
+				// ISocketSubsystem* SocketSubsystem = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM);
 				// error code: (int32)SocketSubsystem->GetLastErrorCode()
 				AsyncTask(ENamedThreads::GameThread, []() {
 					ATcpSocketConnection::PrintToConsole(FString::Printf(TEXT("In progress read failed. TcpSocketConnection.cpp: line %d"), __LINE__), true);
@@ -452,7 +481,16 @@ uint32 FTcpSocketWorker::Run()
 			});			
 		}
 
-		FPlatformProcess::Sleep(TimeBetweenTicks);
+		/* In order to sleep, we will account for how much this tick took due to sending and receiving */
+		FDateTime timeEndOfTick = FDateTime::UtcNow();
+		FTimespan tickDuration = timeEndOfTick - timeBeginningOfTick;
+		float secondsThisTickTook = tickDuration.GetTotalSeconds();
+		float timeToSleep = TimeBetweenTicks - secondsThisTickTook;
+		if (timeToSleep > 0.f)
+		{
+			//AsyncTask(ENamedThreads::GameThread, [timeToSleep]() { ATcpSocketConnection::PrintToConsole(FString::Printf(TEXT("Sleeping: %f seconds"), timeToSleep), false); });
+			FPlatformProcess::Sleep(timeToSleep);
+		}
 	}
 
 	bConnected = false;
