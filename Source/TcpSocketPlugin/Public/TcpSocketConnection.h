@@ -103,7 +103,7 @@ public:
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Read String", Keywords = "read string"), Category = "Socket")
 	static FString Message_ReadString(UPARAM(ref) TArray<uint8>& Message, int32 StringLength);
 
-	UFUNCTION(BlueprintCallable, BlueprintPure)
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Socket")
 	bool isConnected(int32 ConnectionId);
 
 	/* Used by the separate threads to print to console on the main thread. */
