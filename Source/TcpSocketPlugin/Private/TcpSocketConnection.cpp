@@ -9,6 +9,7 @@
 #include "Async/Async.h"
 #include <string>
 #include "Logging/MessageLog.h"
+#include "HAL/UnrealMemory.h"
 #include "TcpSocketSettings.h"
 
 // Sets default values
@@ -135,18 +136,18 @@ TArray<uint8> ATcpSocketConnection::Conv_IntToBytes(int32 InInt)
 
 TArray<uint8> ATcpSocketConnection::Conv_StringToBytes(const FString& InStr)
 {
-	FString mymessage = InStr;
-	TCHAR *messagearray = mymessage.GetCharArray().GetData();
-	uint8* message = (uint8*)TCHAR_TO_UTF8(messagearray);
-
-	FTCHARToUTF8 Convert(*mymessage);
+	FTCHARToUTF8 Convert(*InStr);
 	int BytesLength = Convert.Length(); //length of the utf-8 string in bytes (when non-latin letters are used, it's longer than just the number of characters)
+	uint8* messageBytes = static_cast<uint8*>(FMemory::Malloc(BytesLength));
+	FMemory::Memcpy(messageBytes, (uint8*)TCHAR_TO_UTF8(InStr.GetCharArray().GetData()), BytesLength); //mcmpy is required, since TCHAR_TO_UTF8 returns an object with a very short lifetime
 
 	TArray<uint8> result;
 	for (int i = 0; i < BytesLength; i++)
 	{
-		result.Add(message[i]);
+		result.Add(messageBytes[i]);
 	}
+
+	FMemory::Free(messageBytes);	
 
 	return result;
 }
