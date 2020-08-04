@@ -454,7 +454,7 @@ uint32 FTcpSocketWorker::Run()
 				break;
 			}
 
-			ATcpSocketConnection::PrintToConsole(FString::Printf(TEXT("Pending data %d"), (int32)PendingDataSize), false);
+			AsyncTask(ENamedThreads::GameThread, []() { ATcpSocketConnection::PrintToConsole("Pending data", false); }); // SMODE TECH
 
 			receivedData.SetNumUninitialized(BytesReadTotal + PendingDataSize);
 
