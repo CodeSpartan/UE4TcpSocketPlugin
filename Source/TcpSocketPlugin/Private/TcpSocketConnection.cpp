@@ -307,7 +307,7 @@ void ATcpSocketConnection::ExecuteOnDisconnected(int32 WorkerId, TWeakObjectPtr<
 
 bool FTcpSocketWorker::isConnected()
 {
-	FScopeLock ScopeLock(&SendCriticalSection);
+	///FScopeLock ScopeLock(&SendCriticalSection);
 	return bConnected;
 }
 
@@ -446,7 +446,7 @@ uint32 FTcpSocketWorker::Run()
 
 		int32 BytesReadTotal = 0;
 		// keep going until we have no data.
-		for (;;)
+		while (bRun) // SMODE TECH for (;;)
 		{
 			if (!Socket->HasPendingData(PendingDataSize))
 			{
@@ -474,7 +474,7 @@ uint32 FTcpSocketWorker::Run()
 		}
 
 		// if we received data, inform the main thread about it, so it can read TQueue
-		if (receivedData.Num() != 0)
+		if (bRun /*SMODE TECH */ && receivedData.Num() != 0)
 		{
 			Inbox.Enqueue(receivedData);
 			AsyncTask(ENamedThreads::GameThread, [this]() {
@@ -501,6 +501,11 @@ uint32 FTcpSocketWorker::Run()
 	});
 
 	SocketShutdown();
+	if (Socket) // SMODE TECH
+	{
+		delete Socket;
+		Socket = nullptr;
+	}
 	
 	return 0;
 }
