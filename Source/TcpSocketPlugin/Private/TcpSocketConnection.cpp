@@ -459,7 +459,7 @@ uint32 FTcpSocketWorker::Run()
 			receivedData.SetNumUninitialized(BytesReadTotal + PendingDataSize);
 
 			int32 BytesRead = 0;
-			if (!Socket->Recv(receivedData.GetData() + BytesReadTotal, ActualRecvBufferSize, BytesRead))
+			if (!Socket->Recv(receivedData.GetData() + BytesReadTotal, PendingDataSize /*SMODE TECH*/, BytesRead))
 			{
 				// ISocketSubsystem* SocketSubsystem = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM);
 				// error code: (int32)SocketSubsystem->GetLastErrorCode()
