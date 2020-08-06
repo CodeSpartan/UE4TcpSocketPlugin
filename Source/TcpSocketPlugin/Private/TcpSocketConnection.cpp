@@ -273,15 +273,18 @@ bool ATcpSocketConnection::isConnected(int32 ConnectionId)
 
 void ATcpSocketConnection::PrintToConsole(FString Str, bool Error)
 {
-	if (Error && GetDefault<UTcpSocketSettings>()->bPostErrorsToMessageLog)
+	if (auto tcpSocketSettings = GetDefault<UTcpSocketSettings>()) // SMODE TECH
 	{
-		auto messageLog = FMessageLog("Tcp Socket Plugin");
-		messageLog.Open(EMessageSeverity::Error, true);
-		messageLog.Message(EMessageSeverity::Error, FText::AsCultureInvariant(Str));
-	}
-	else
-	{
-		UE_LOG(LogTemp, Log, TEXT("Log: %s"), *Str);
+		if (Error && tcpSocketSettings->bPostErrorsToMessageLog)
+		{
+			auto messageLog = FMessageLog("Tcp Socket Plugin");
+			messageLog.Open(EMessageSeverity::Error, true);
+			messageLog.Message(EMessageSeverity::Error, FText::AsCultureInvariant(Str));
+		}
+		else
+		{
+			UE_LOG(LogTemp, Log, TEXT("Log: %s"), *Str);
+		}
 	}
 }
 
