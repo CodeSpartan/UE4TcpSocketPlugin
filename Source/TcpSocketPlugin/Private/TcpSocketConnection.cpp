@@ -242,7 +242,8 @@ FString ATcpSocketConnection::Message_ReadString(TArray<uint8>& Message, int32 B
 {
 	if (BytesLength <= 0)
 	{
-		PrintToConsole("Error in the ReadString node. BytesLength isn't a positive number.", true);
+		if (BytesLength < 0)
+			PrintToConsole("Error in the ReadString node. BytesLength isn't a positive number.", true);
 		return FString("");
 	}
 	if (Message.Num() < BytesLength)
@@ -439,6 +440,7 @@ uint32 FTcpSocketWorker::Run()
 			{
 				// if sending failed, stop running the thread
 				bRun = false;
+				UE_LOG(LogTemp, Log, TEXT("TCP send data failed !")); // SMODE TECH
 				continue;
 			}
 		}
@@ -457,7 +459,7 @@ uint32 FTcpSocketWorker::Run()
 				break;
 			}
 
-			AsyncTask(ENamedThreads::GameThread, []() { ATcpSocketConnection::PrintToConsole("Pending data", false); }); // SMODE TECH
+			// AsyncTask(ENamedThreads::GameThread, []() { ATcpSocketConnection::PrintToConsole("Pending data", false); }); // SMODE TECH
 
 			receivedData.SetNumUninitialized(BytesReadTotal + PendingDataSize);
 
