@@ -274,7 +274,7 @@ bool ATcpSocketConnection::isConnected(int32 ConnectionId)
 
 void ATcpSocketConnection::PrintToConsole(FString Str, bool Error)
 {
-	if (auto tcpSocketSettings = GetDefault<UTcpSocketSettings>()) // SMODE TECH
+	if (auto tcpSocketSettings = GetDefault<UTcpSocketSettings>())
 	{
 		if (Error && tcpSocketSettings->bPostErrorsToMessageLog)
 		{
@@ -440,7 +440,7 @@ uint32 FTcpSocketWorker::Run()
 			{
 				// if sending failed, stop running the thread
 				bRun = false;
-				UE_LOG(LogTemp, Log, TEXT("TCP send data failed !")); // SMODE TECH
+				UE_LOG(LogTemp, Log, TEXT("TCP send data failed !"));
 				continue;
 			}
 		}
@@ -451,7 +451,7 @@ uint32 FTcpSocketWorker::Run()
 
 		int32 BytesReadTotal = 0;
 		// keep going until we have no data.
-		while (bRun) // SMODE TECH for (;;)
+		while (bRun)
 		{
 			if (!Socket->HasPendingData(PendingDataSize))
 			{
@@ -459,12 +459,12 @@ uint32 FTcpSocketWorker::Run()
 				break;
 			}
 
-			// AsyncTask(ENamedThreads::GameThread, []() { ATcpSocketConnection::PrintToConsole("Pending data", false); }); // SMODE TECH
+			AsyncTask(ENamedThreads::GameThread, []() { ATcpSocketConnection::PrintToConsole("Pending data", false); });
 
 			receivedData.SetNumUninitialized(BytesReadTotal + PendingDataSize);
 
 			int32 BytesRead = 0;
-			if (!Socket->Recv(receivedData.GetData() + BytesReadTotal, PendingDataSize /*SMODE TECH*/, BytesRead))
+			if (!Socket->Recv(receivedData.GetData() + BytesReadTotal, PendingDataSize, BytesRead))
 			{
 				// ISocketSubsystem* SocketSubsystem = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM);
 				// error code: (int32)SocketSubsystem->GetLastErrorCode()
@@ -479,7 +479,7 @@ uint32 FTcpSocketWorker::Run()
 		}
 
 		// if we received data, inform the main thread about it, so it can read TQueue
-		if (bRun /*SMODE TECH */ && receivedData.Num() != 0)
+		if (bRun && receivedData.Num() != 0)
 		{
 			Inbox.Enqueue(receivedData);
 			AsyncTask(ENamedThreads::GameThread, [this]() {
@@ -506,7 +506,7 @@ uint32 FTcpSocketWorker::Run()
 	});
 
 	SocketShutdown();
-	if (Socket) // SMODE TECH
+	if (Socket)
 	{
 		delete Socket;
 		Socket = nullptr;
