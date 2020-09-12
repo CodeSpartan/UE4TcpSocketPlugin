@@ -242,7 +242,8 @@ FString ATcpSocketConnection::Message_ReadString(TArray<uint8>& Message, int32 B
 {
 	if (BytesLength <= 0)
 	{
-		PrintToConsole("Error in the ReadString node. BytesLength isn't a positive number.", true);
+		if (BytesLength < 0)
+			PrintToConsole("Error in the ReadString node. BytesLength isn't a positive number.", true);
 		return FString("");
 	}
 	if (Message.Num() < BytesLength)
@@ -273,15 +274,18 @@ bool ATcpSocketConnection::isConnected(int32 ConnectionId)
 
 void ATcpSocketConnection::PrintToConsole(FString Str, bool Error)
 {
-	if (Error && GetDefault<UTcpSocketSettings>()->bPostErrorsToMessageLog)
+	if (auto tcpSocketSettings = GetDefault<UTcpSocketSettings>())
 	{
-		auto messageLog = FMessageLog("Tcp Socket Plugin");
-		messageLog.Open(EMessageSeverity::Error, true);
-		messageLog.Message(EMessageSeverity::Error, FText::AsCultureInvariant(Str));
-	}
-	else
-	{
-		UE_LOG(LogTemp, Log, TEXT("Log: %s"), *Str);
+		if (Error && tcpSocketSettings->bPostErrorsToMessageLog)
+		{
+			auto messageLog = FMessageLog("Tcp Socket Plugin");
+			messageLog.Open(EMessageSeverity::Error, true);
+			messageLog.Message(EMessageSeverity::Error, FText::AsCultureInvariant(Str));
+		}
+		else
+		{
+			UE_LOG(LogTemp, Log, TEXT("Log: %s"), *Str);
+		}
 	}
 }
 
@@ -307,7 +311,7 @@ void ATcpSocketConnection::ExecuteOnDisconnected(int32 WorkerId, TWeakObjectPtr<
 
 bool FTcpSocketWorker::isConnected()
 {
-	FScopeLock ScopeLock(&SendCriticalSection);
+	///FScopeLock ScopeLock(&SendCriticalSection);
 	return bConnected;
 }
 
@@ -436,6 +440,7 @@ uint32 FTcpSocketWorker::Run()
 			{
 				// if sending failed, stop running the thread
 				bRun = false;
+				UE_LOG(LogTemp, Log, TEXT("TCP send data failed !"));
 				continue;
 			}
 		}
@@ -446,7 +451,7 @@ uint32 FTcpSocketWorker::Run()
 
 		int32 BytesReadTotal = 0;
 		// keep going until we have no data.
-		for (;;)
+		while (bRun)
 		{
 			if (!Socket->HasPendingData(PendingDataSize))
 			{
@@ -454,12 +459,12 @@ uint32 FTcpSocketWorker::Run()
 				break;
 			}
 
-			ATcpSocketConnection::PrintToConsole(FString::Printf(TEXT("Pending data %d"), (int32)PendingDataSize), false);
+			AsyncTask(ENamedThreads::GameThread, []() { ATcpSocketConnection::PrintToConsole("Pending data", false); });
 
 			receivedData.SetNumUninitialized(BytesReadTotal + PendingDataSize);
 
 			int32 BytesRead = 0;
-			if (!Socket->Recv(receivedData.GetData() + BytesReadTotal, ActualRecvBufferSize, BytesRead))
+			if (!Socket->Recv(receivedData.GetData() + BytesReadTotal, PendingDataSize, BytesRead))
 			{
 				// ISocketSubsystem* SocketSubsystem = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM);
 				// error code: (int32)SocketSubsystem->GetLastErrorCode()
@@ -474,7 +479,7 @@ uint32 FTcpSocketWorker::Run()
 		}
 
 		// if we received data, inform the main thread about it, so it can read TQueue
-		if (receivedData.Num() != 0)
+		if (bRun && receivedData.Num() != 0)
 		{
 			Inbox.Enqueue(receivedData);
 			AsyncTask(ENamedThreads::GameThread, [this]() {
@@ -501,6 +506,11 @@ uint32 FTcpSocketWorker::Run()
 	});
 
 	SocketShutdown();
+	if (Socket)
+	{
+		delete Socket;
+		Socket = nullptr;
+	}
 	
 	return 0;
 }

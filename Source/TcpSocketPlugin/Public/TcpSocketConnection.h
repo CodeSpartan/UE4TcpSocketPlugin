@@ -136,7 +136,7 @@ class FTcpSocketWorker : public FRunnable, public TSharedFromThis<FTcpSocketWork
 	FRunnableThread* Thread = nullptr;
 
 private:
-	class FSocket* Socket;
+	class FSocket* Socket = nullptr;
 	FString ipAddress;
 	int port;
 	TWeakObjectPtr<ATcpSocketConnection> ThreadSpawnerActor;
@@ -146,7 +146,7 @@ private:
 	int32 SendBufferSize;
 	int32 ActualSendBufferSize;
 	float TimeBetweenTicks;
-	bool bConnected = false;	
+	FThreadSafeBool bConnected = false;
 
 	// SPSC = single producer, single consumer.
 	TQueue<TArray<uint8>, EQueueMode::Spsc> Inbox; // Messages we read from socket and send to main thread. Runner thread is producer, main thread is consumer.
@@ -188,5 +188,5 @@ private:
 	FThreadSafeBool bRun = false;
 
 	/** Critical section preventing multiple threads from sending simultaneously */
-	FCriticalSection SendCriticalSection;
+	//FCriticalSection SendCriticalSection;
 };
