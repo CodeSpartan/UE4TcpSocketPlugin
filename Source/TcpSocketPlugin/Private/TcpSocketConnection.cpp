@@ -27,6 +27,7 @@ void ATcpSocketConnection::BeginPlay()
 
 void ATcpSocketConnection::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	Super::EndPlay(EndPlayReason);
 	TArray<int32> keys;
 	TcpWorkers.GetKeys(keys);
 
