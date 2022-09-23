@@ -137,7 +137,7 @@ class FTcpSocketWorker : public FRunnable, public TSharedFromThis<FTcpSocketWork
 
 private:
 	class FSocket* Socket = nullptr;
-	FString ipAddress;
+	FString host;
 	int port;
 	TWeakObjectPtr<ATcpSocketConnection> ThreadSpawnerActor;
 	int32 id;
@@ -155,7 +155,7 @@ private:
 public:
 
 	//Constructor / Destructor
-	FTcpSocketWorker(FString inIp, const int32 inPort, TWeakObjectPtr<ATcpSocketConnection> InOwner, int32 inId, int32 inRecvBufferSize, int32 inSendBufferSize, float inTimeBetweenTicks);
+	FTcpSocketWorker(FString inHost, const int32 inPort, TWeakObjectPtr<ATcpSocketConnection> InOwner, int32 inId, int32 inRecvBufferSize, int32 inSendBufferSize, float inTimeBetweenTicks);
 	virtual ~FTcpSocketWorker();
 
 	/*  Starts processing of the connection. Needs to be called immediately after construction	 */

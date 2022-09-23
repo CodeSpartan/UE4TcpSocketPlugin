@@ -43,7 +43,7 @@ void ATcpSocketConnection::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 }
 
-void ATcpSocketConnection::Connect(const FString& ipAddress, int32 port, const FTcpSocketDisconnectDelegate& OnDisconnected, const FTcpSocketConnectDelegate& OnConnected,
+void ATcpSocketConnection::Connect(const FString& host, int32 port, const FTcpSocketDisconnectDelegate& OnDisconnected, const FTcpSocketConnectDelegate& OnConnected,
 	const FTcpSocketReceivedMessageDelegate& OnMessageReceived, int32& ConnectionId)
 {
 	DisconnectedDelegate = OnDisconnected;
@@ -53,7 +53,7 @@ void ATcpSocketConnection::Connect(const FString& ipAddress, int32 port, const F
 	ConnectionId = TcpWorkers.Num();
 
 	TWeakObjectPtr<ATcpSocketConnection> thisWeakObjPtr = TWeakObjectPtr<ATcpSocketConnection>(this);
-	TSharedRef<FTcpSocketWorker> worker(new FTcpSocketWorker(ipAddress, port, thisWeakObjPtr, ConnectionId, ReceiveBufferSize, SendBufferSize, TimeBetweenTicks));
+	TSharedRef<FTcpSocketWorker> worker(new FTcpSocketWorker(host, port, thisWeakObjPtr, ConnectionId, ReceiveBufferSize, SendBufferSize, TimeBetweenTicks));
 	TcpWorkers.Add(ConnectionId, worker);
 	worker->Start();
 }
@@ -316,8 +316,8 @@ bool FTcpSocketWorker::isConnected()
 	return bConnected;
 }
 
-FTcpSocketWorker::FTcpSocketWorker(FString inIp, const int32 inPort, TWeakObjectPtr<ATcpSocketConnection> InOwner, int32 inId, int32 inRecvBufferSize, int32 inSendBufferSize, float inTimeBetweenTicks)
-	: ipAddress(inIp)
+FTcpSocketWorker::FTcpSocketWorker(FString inHost, const int32 inPort, TWeakObjectPtr<ATcpSocketConnection> InOwner, int32 inId, int32 inRecvBufferSize, int32 inSendBufferSize, float inTimeBetweenTicks)
+	: host(inHost)
 	, port(inPort)
 	, ThreadSpawnerActor(InOwner)
 	, id(inId)
@@ -348,7 +348,7 @@ void FTcpSocketWorker::Start()
 	{
 		UE_LOG(LogTemp, Log, TEXT("Log: Thread isn't null. It's: %s"), *Thread->GetThreadName());
 	}
-	Thread = FRunnableThread::Create(this, *FString::Printf(TEXT("FTcpSocketWorker %s:%d"), *ipAddress, port), 128 * 1024, TPri_Normal);
+	Thread = FRunnableThread::Create(this, *FString::Printf(TEXT("FTcpSocketWorker %s:%d"), *host, port), 128 * 1024, TPri_Normal);
 	UE_LOG(LogTemp, Log, TEXT("Log: Created thread"));
 }
 
@@ -392,11 +392,38 @@ uint32 FTcpSocketWorker::Run()
 			Socket->SetSendBufferSize(SendBufferSize, ActualSendBufferSize);
 
 			FIPv4Address ip;
-			FIPv4Address::Parse(ipAddress, ip);
-
 			TSharedRef<FInternetAddr> internetAddr = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->CreateInternetAddr();
-			internetAddr->SetIp(ip.Value);
+
+			if (!FIPv4Address::Parse(host, ip))
+			{
+				UE_LOG(LogTemp, Log, TEXT("Log: Trying to resolve hostname to IP address"));
+				auto ResolveInfo = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->GetHostByName(TCHAR_TO_ANSI(*host));
+				while (!ResolveInfo->IsComplete());
+
+				if (ResolveInfo->IsComplete() && ResolveInfo->GetErrorCode() == 0)
+				{
+					const FInternetAddr* addr = &ResolveInfo->GetResolvedAddress();
+					uint32 OutIP = 0;
+					addr->GetIp(OutIP);
+					internetAddr->SetIp(OutIP);
+					UE_LOG(LogTemp, Log, TEXT("Log: Hostname <%s> resolved to ip <%s>"), *host, *addr->ToString(false));
+				} 
+				else 
+				{
+					UE_LOG(LogTemp, Log, TEXT("Log: Faled to resolve hostname <%s>"), *host);
+					FIPv4Address::Parse("127.0.0.1", ip);
+					internetAddr->SetIp(ip.Value);
+				}
+			}
+			else 
+			{
+				FIPv4Address::Parse(host, ip);
+				internetAddr->SetIp(ip.Value);
+			}
+
 			internetAddr->SetPort(port);
+			
+			UE_LOG(LogTemp, Log, TEXT("Log: Trying to connect to host <%s> with port <%d>"), *host, port);
 
 			bConnected = Socket->Connect(*internetAddr);
 			if (bConnected) 
