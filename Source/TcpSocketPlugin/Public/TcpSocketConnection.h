@@ -127,6 +127,8 @@ private:
 	FTcpSocketDisconnectDelegate DisconnectedDelegate;
 	FTcpSocketConnectDelegate ConnectedDelegate;
 	FTcpSocketReceivedMessageDelegate MessageReceivedDelegate;
+
+	int32 NextConnectionId = 0;
 };
 
 class FTcpSocketWorker : public FRunnable, public TSharedFromThis<FTcpSocketWorker>

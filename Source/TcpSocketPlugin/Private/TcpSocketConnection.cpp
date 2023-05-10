@@ -50,7 +50,8 @@ void ATcpSocketConnection::Connect(const FString& ipAddress, int32 port, const F
 	ConnectedDelegate = OnConnected;
 	MessageReceivedDelegate = OnMessageReceived;
 
-	ConnectionId = TcpWorkers.Num();
+	ConnectionId = NextConnectionId;
+	NextConnectionId++;
 
 	TWeakObjectPtr<ATcpSocketConnection> thisWeakObjPtr = TWeakObjectPtr<ATcpSocketConnection>(this);
 	TSharedRef<FTcpSocketWorker> worker(new FTcpSocketWorker(ipAddress, port, thisWeakObjPtr, ConnectionId, ReceiveBufferSize, SendBufferSize, TimeBetweenTicks));
