@@ -170,7 +170,7 @@ TArray<uint8> ATcpSocketConnection::Conv_FloatToBytes(float InFloat)
 	TArray<uint8> result;
 
 	unsigned char const * p = reinterpret_cast<unsigned char const *>(&InFloat);
-	for (int i = 0; i != sizeof(float); i++)
+	for (int i = 0; i != 4; i++)
 	{
 		result.Add((uint8)p[i]);
 	}
@@ -180,9 +180,9 @@ TArray<uint8> ATcpSocketConnection::Conv_FloatToBytes(float InFloat)
 TArray<uint8> ATcpSocketConnection::Conv_DoubleToBytes(double InDouble)
 {
 	TArray<uint8> result;
-	result.SetNumUninitialized(sizeof(double));
+	result.SetNumUninitialized(8);
 
-	std::memcpy(result.GetData(), &InDouble, sizeof(double));
+	std::memcpy(result.GetData(), &InDouble, 8);
 
 	return result;
 }
@@ -231,7 +231,7 @@ bool ATcpSocketConnection::Message_ReadBytes(int32 NumBytes, TArray<uint8>& Mess
 
 int16 ATcpSocketConnection::Message_ReadShort(const TArray<uint8>& Message)
 {
-	if (Message.Num() < sizeof(int16))
+	if (Message.Num() < 2)
 	{
 		PrintToConsole("Error in the ReadShort node. Not enough bytes in the Message.", true);
 		return -1;
@@ -268,16 +268,16 @@ int32 ATcpSocketConnection::Message_ReadInt(TArray<uint8>& Message)
 
 int64 ATcpSocketConnection::Message_ReadLong(const TArray<uint8>& Message)
 {
-	if (Message.Num() < sizeof(int64))
+	if (Message.Num() < 8)
 	{
 		PrintToConsole("Error in the ReadLong node. Not enough bytes in the Message.", true);
 		return -1;
 	}
 
 	int64 result = 0;
-	for (int i = 0; i < sizeof(int64); ++i)
+	for (int i = 0; i < 8; ++i)
 	{
-		result |= ((int64)Message[i] << (8 * (sizeof(int64) - 1 - i)));
+		result |= ((int64)Message[i] << (8 * (8 - 1 - i)));
 	}
 
 	return result;
@@ -307,14 +307,14 @@ float ATcpSocketConnection::Message_ReadFloat(TArray<uint8>& Message)
 
 double ATcpSocketConnection::Message_ReadDouble(const TArray<uint8>& Message)
 {
-	if (Message.Num() < sizeof(double))
+	if (Message.Num() < 8)
 	{
 		PrintToConsole("Error in the ReadFloat node. Not enough bytes in the Message.", true);
 		return -1.d;
 	}
 
 	double result;
-	std::memcpy(&result, Message.GetData(), sizeof(double));
+	std::memcpy(&result, Message.GetData(), 8);
 	return result;
 }
 
