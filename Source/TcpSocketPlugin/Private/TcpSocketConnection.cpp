@@ -8,6 +8,7 @@
 #include "HAL/RunnableThread.h"
 #include "Async/Async.h"
 #include <string>
+#include <cstring>
 #include "Logging/MessageLog.h"
 #include "HAL/UnrealMemory.h"
 #include "TcpSocketSettings.h"
@@ -126,6 +127,20 @@ TArray<uint8> ATcpSocketConnection::Concat_BytesBytes(TArray<uint8> A, TArray<ui
 	return ArrayResult;
 }
 
+TArray<uint8> ATcpSocketConnection::Conv_ByteToBytes(uint8 InByte)
+{
+	TArray<uint8> result{ InByte };
+	return result;
+}
+
+TArray<uint8> ATcpSocketConnection::Conv_ShortToBytes(int16 InShort)
+{
+	TArray<uint8> result;
+	result.Add((InShort >> 8) & 0xFF);
+	result.Add(InShort & 0xFF);
+	return result;
+}
+
 TArray<uint8> ATcpSocketConnection::Conv_IntToBytes(int32 InInt)
 {
 	TArray<uint8> result;
@@ -133,6 +148,42 @@ TArray<uint8> ATcpSocketConnection::Conv_IntToBytes(int32 InInt)
 	{
 		result.Add(InInt >> i * 8);
 	}
+	return result;
+}
+
+TArray<uint8> ATcpSocketConnection::Conv_LongToBytes(int64 InLong)
+{
+	TArray<uint8> result;
+	result.Add((InLong >> 56) & 0xFF);
+	result.Add((InLong >> 48) & 0xFF);
+	result.Add((InLong >> 40) & 0xFF);
+	result.Add((InLong >> 32) & 0xFF);
+	result.Add((InLong >> 24) & 0xFF);
+	result.Add((InLong >> 16) & 0xFF);
+	result.Add((InLong >> 8) & 0xFF);
+	result.Add(InLong & 0xFF);
+	return result;
+}
+
+TArray<uint8> ATcpSocketConnection::Conv_FloatToBytes(float InFloat)
+{
+	TArray<uint8> result;
+
+	unsigned char const * p = reinterpret_cast<unsigned char const *>(&InFloat);
+	for (int i = 0; i != sizeof(float); i++)
+	{
+		result.Add((uint8)p[i]);
+	}
+	return result;		
+}
+
+TArray<uint8> ATcpSocketConnection::Conv_DoubleToBytes(double InDouble)
+{
+	TArray<uint8> result;
+	result.SetNumUninitialized(sizeof(double));
+
+	std::memcpy(result.GetData(), &InDouble, sizeof(double));
+
 	return result;
 }
 
@@ -151,46 +202,6 @@ TArray<uint8> ATcpSocketConnection::Conv_StringToBytes(const FString& InStr)
 
 	FMemory::Free(messageBytes);	
 
-	return result;
-}
-
-TArray<uint8> ATcpSocketConnection::Conv_FloatToBytes(float InFloat)
-{
-	TArray<uint8> result;
-
-	unsigned char const * p = reinterpret_cast<unsigned char const *>(&InFloat);
-	for (int i = 0; i != sizeof(float); i++)
-	{
-		result.Add((uint8)p[i]);
-	}
-	return result;		
-}
-
-TArray<uint8> ATcpSocketConnection::Conv_ByteToBytes(uint8 InByte)
-{
-	TArray<uint8> result{ InByte };
-	return result;
-}
-
-int32 ATcpSocketConnection::Message_ReadInt(TArray<uint8>& Message)
-{
-	if (Message.Num() < 4)
-	{
-		PrintToConsole("Error in the ReadInt node. Not enough bytes in the Message.", true);
-		return -1;
-	}
-
-	int result;
-	unsigned char byteArray[4];
-
-	for (int i = 0; i < 4; i++)
-	{
-		byteArray[i] = Message[0];		
-		Message.RemoveAt(0);
-	}
-
-	FMemory::Memcpy(&result, byteArray, 4);
-	
 	return result;
 }
 
@@ -218,6 +229,60 @@ bool ATcpSocketConnection::Message_ReadBytes(int32 NumBytes, TArray<uint8>& Mess
 	return true;
 }
 
+int16 ATcpSocketConnection::Message_ReadShort(const TArray<uint8>& Message)
+{
+	if (Message.Num() < sizeof(int16))
+	{
+		PrintToConsole("Error in the ReadShort node. Not enough bytes in the Message.", true);
+		return -1;
+	}
+
+	int16 result = 0;
+	result |= (Message[0] << 8);
+	result |= Message[1];
+
+	return result;
+}
+
+int32 ATcpSocketConnection::Message_ReadInt(TArray<uint8>& Message)
+{
+	if (Message.Num() < 4)
+	{
+		PrintToConsole("Error in the ReadInt node. Not enough bytes in the Message.", true);
+		return -1;
+	}
+
+	int result;
+	unsigned char byteArray[4];
+
+	for (int i = 0; i < 4; i++)
+	{
+		byteArray[i] = Message[0];		
+		Message.RemoveAt(0);
+	}
+
+	FMemory::Memcpy(&result, byteArray, 4);
+	
+	return result;
+}
+
+int64 ATcpSocketConnection::Message_ReadLong(const TArray<uint8>& Message)
+{
+	if (Message.Num() < sizeof(int64))
+	{
+		PrintToConsole("Error in the ReadLong node. Not enough bytes in the Message.", true);
+		return -1;
+	}
+
+	int64 result = 0;
+	for (int i = 0; i < sizeof(int64); ++i)
+	{
+		result |= ((int64)Message[i] << (8 * (sizeof(int64) - 1 - i)));
+	}
+
+	return result;
+}
+
 float ATcpSocketConnection::Message_ReadFloat(TArray<uint8>& Message)
 {
 	if (Message.Num() < 4)
@@ -237,6 +302,19 @@ float ATcpSocketConnection::Message_ReadFloat(TArray<uint8>& Message)
 
 	FMemory::Memcpy(&result, byteArray, 4);
 
+	return result;
+}
+
+double ATcpSocketConnection::Message_ReadDouble(const TArray<uint8>& Message)
+{
+	if (Message.Num() < sizeof(double))
+	{
+		PrintToConsole("Error in the ReadFloat node. Not enough bytes in the Message.", true);
+		return -1.d;
+	}
+
+	double result;
+	std::memcpy(&result, Message.GetData(), sizeof(double));
 	return result;
 }
 
