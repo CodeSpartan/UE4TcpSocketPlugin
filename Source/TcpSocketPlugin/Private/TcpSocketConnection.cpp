@@ -309,7 +309,7 @@ double ATcpSocketConnection::Message_ReadDouble(const TArray<uint8>& Message)
 {
 	if (Message.Num() < 8)
 	{
-		PrintToConsole("Error in the ReadFloat node. Not enough bytes in the Message.", true);
+		PrintToConsole("Error in the ReadDouble node. Not enough bytes in the Message.", true);
 		return -1.d;
 	}
 
