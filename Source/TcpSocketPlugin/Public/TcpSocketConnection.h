@@ -76,9 +76,9 @@ public:
 	UFUNCTION(BlueprintPure, meta = (DisplayName = "Byte To Bytes", CompactNodeTitle = "->", Keywords = "cast convert", BlueprintAutocast), Category = "Socket")
 	static TArray<uint8> Conv_ByteToBytes(uint8 InByte);
 
-	/** Converts a short to an array of bytes */
+	/** Converts a (short value) integer to an array of bytes */
 	UFUNCTION(BlueprintPure, meta = (DisplayName = "Short To Bytes", CompactNodeTitle = "->", Keywords = "cast convert", BlueprintAutocast), Category = "Socket")
-	static TArray<uint8> Conv_ShortToBytes(int16 InShort);
+	static TArray<uint8> Conv_ShortToBytes(int32 InInt);
 
 	/** Converts an integer to an array of bytes */
 	UFUNCTION(BlueprintPure, meta = (DisplayName = "Int To Bytes", CompactNodeTitle = "->", Keywords = "cast convert", BlueprintAutocast), Category = "Socket")
@@ -106,8 +106,8 @@ public:
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Read Byte", Keywords = "read byte int8 uint8"), Category = "Socket")
 	static uint8 Message_ReadByte(UPARAM(ref) TArray<uint8>& Message);
 
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Read Short", Keywords = "read short int16"), Category = "Socket")
-	static int16 Message_ReadShort(UPARAM(ref) TArray<uint8>& Message);
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Read Short", Keywords = "read short int32"), Category = "Socket")
+	static int32 Message_ReadShort(UPARAM(ref) TArray<uint8>& Message);
 
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Read Int", Keywords = "read int"), Category = "Socket")
 	static int32 Message_ReadInt(UPARAM(ref) TArray<uint8>& Message);
