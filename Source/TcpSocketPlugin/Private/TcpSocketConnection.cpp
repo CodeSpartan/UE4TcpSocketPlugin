@@ -133,11 +133,11 @@ TArray<uint8> ATcpSocketConnection::Conv_ByteToBytes(uint8 InByte)
 	return result;
 }
 
-TArray<uint8> ATcpSocketConnection::Conv_ShortToBytes(int16 InShort)
+TArray<uint8> ATcpSocketConnection::Conv_ShortToBytes(int32 InInt)
 {
 	TArray<uint8> result;
-	result.Add((InShort >> 8) & 0xFF);
-	result.Add(InShort & 0xFF);
+	result.Add((InInt >> 8) & 0xFF);
+	result.Add(InInt & 0xFF);
 	return result;
 }
 
@@ -153,16 +153,17 @@ TArray<uint8> ATcpSocketConnection::Conv_IntToBytes(int32 InInt)
 
 TArray<uint8> ATcpSocketConnection::Conv_LongToBytes(int64 InLong)
 {
-	TArray<uint8> result;
-	result.Add((InLong >> 56) & 0xFF);
-	result.Add((InLong >> 48) & 0xFF);
-	result.Add((InLong >> 40) & 0xFF);
-	result.Add((InLong >> 32) & 0xFF);
-	result.Add((InLong >> 24) & 0xFF);
-	result.Add((InLong >> 16) & 0xFF);
-	result.Add((InLong >> 8) & 0xFF);
-	result.Add(InLong & 0xFF);
-	return result;
+	return TArray<uint8>
+	{
+		static_cast<uint8>((InLong >> 56) & 0xFF),
+		static_cast<uint8>((InLong >> 48) & 0xFF),
+		static_cast<uint8>((InLong >> 40) & 0xFF),
+		static_cast<uint8>((InLong >> 32) & 0xFF),
+		static_cast<uint8>((InLong >> 24) & 0xFF),
+		static_cast<uint8>((InLong >> 16) & 0xFF),
+		static_cast<uint8>((InLong >> 8) & 0xFF),
+		static_cast<uint8>(InLong & 0xFF)
+	};
 }
 
 TArray<uint8> ATcpSocketConnection::Conv_FloatToBytes(float InFloat)
@@ -229,7 +230,7 @@ bool ATcpSocketConnection::Message_ReadBytes(int32 NumBytes, TArray<uint8>& Mess
 	return true;
 }
 
-int16 ATcpSocketConnection::Message_ReadShort(const TArray<uint8>& Message)
+int32 ATcpSocketConnection::Message_ReadShort(const TArray<uint8>& Message)
 {
 	if (Message.Num() < 2)
 	{
@@ -237,7 +238,7 @@ int16 ATcpSocketConnection::Message_ReadShort(const TArray<uint8>& Message)
 		return -1;
 	}
 
-	int16 result = 0;
+	int32 result = 0;
 	result |= (Message[0] << 8);
 	result |= Message[1];
 
