@@ -66,9 +66,6 @@ public:
 	//UFUNCTION(Category = "Socket")
 	void ExecuteOnMessageReceived(int32 ConnectionId, TWeakObjectPtr<ATcpSocketConnection> thisObj);
 
-	/*UFUNCTION(BlueprintPure, meta = (DisplayName = "Append Bytes", CommutativeAssociativeBinaryOperator = "true"), Category = "Socket")
-	static TArray<uint8> Concat_BytesBytes(const TArray<uint8>& A, const TArray<uint8>& B);*/
-
 	UFUNCTION(BlueprintPure, meta = (DisplayName = "Append Bytes", CommutativeAssociativeBinaryOperator = "true"), Category = "Socket")
 	static TArray<uint8> Concat_BytesBytes(TArray<uint8> A, TArray<uint8> B);
 
@@ -76,24 +73,24 @@ public:
 	UFUNCTION(BlueprintPure, meta = (DisplayName = "Byte To Bytes", CompactNodeTitle = "->", Keywords = "cast convert", BlueprintAutocast), Category = "Socket")
 	static TArray<uint8> Conv_ByteToBytes(uint8 InByte);
 
-	/** Converts a (short value) integer to an array of bytes */
-	UFUNCTION(BlueprintPure, meta = (DisplayName = "Short To Bytes", CompactNodeTitle = "->", Keywords = "cast convert", BlueprintAutocast), Category = "Socket")
-	static TArray<uint8> Conv_ShortToBytes(int32 InInt);
+	/** Converts an int16 to an array of bytes */
+	UFUNCTION()
+	static TArray<uint8> Conv_ShortToBytes(int16 InShort);
 
 	/** Converts an integer to an array of bytes */
 	UFUNCTION(BlueprintPure, meta = (DisplayName = "Int To Bytes", CompactNodeTitle = "->", Keywords = "cast convert", BlueprintAutocast), Category = "Socket")
 	static TArray<uint8> Conv_IntToBytes(int32 InInt);
 
-	/** Converts a long to an array of bytes */
-	UFUNCTION(BlueprintPure, meta = (DisplayName = "Long To Bytes", CompactNodeTitle = "->", Keywords = "cast convert", BlueprintAutocast), Category = "Socket")
-	static TArray<uint8> Conv_LongToBytes(int64 InLong);
-
-	/** Converts a float to an array of bytes */
-	UFUNCTION(BlueprintPure, meta = (DisplayName = "Float To Bytes", CompactNodeTitle = "->", Keywords = "cast convert", BlueprintAutocast), Category = "Socket")
+	/** Converts a float (single-precision) to an array of bytes */
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "Float (single-precision) To Bytes", CompactNodeTitle = "4->", Keywords = "cast convert", BlueprintAutocast), Category = "Socket")
 	static TArray<uint8> Conv_FloatToBytes(float InFloat);
 
-	/** Converts a double to an array of bytes */
-	UFUNCTION(BlueprintPure, meta = (DisplayName = "Double To Bytes", CompactNodeTitle = "->", Keywords = "cast convert", BlueprintAutocast), Category = "Socket")
+	/** Converts an int64 to an array of bytes */
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "Int64 To Bytes", CompactNodeTitle = "->", Keywords = "cast convert", BlueprintAutocast), Category = "Socket")
+	static TArray<uint8> Conv_LongToBytes(int64 InLong);
+
+	/** Converts a float (double-precision) to an array of bytes */
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "Float (double-precision) To Bytes", CompactNodeTitle = "8->", Keywords = "cast convert", BlueprintAutocast), Category = "Socket")
 	static TArray<uint8> Conv_DoubleToBytes(double InDouble);
 
 	/** Converts a string to an array of bytes */
@@ -106,19 +103,19 @@ public:
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Read Byte", Keywords = "read byte int8 uint8"), Category = "Socket")
 	static uint8 Message_ReadByte(UPARAM(ref) TArray<uint8>& Message);
 
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Read Short", Keywords = "read short int32"), Category = "Socket")
-	static int32 Message_ReadShort(UPARAM(ref) TArray<uint8>& Message);
+	UFUNCTION()
+	static int16 Message_ReadShort(TArray<uint8>& Message);
 
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Read Int", Keywords = "read int"), Category = "Socket")
 	static int32 Message_ReadInt(UPARAM(ref) TArray<uint8>& Message);
 
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Read Long", Keywords = "read long int64"), Category = "Socket")
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Read Int64", Keywords = "read long int64"), Category = "Socket")
 	static int64 Message_ReadLong(UPARAM(ref) TArray<uint8>& Message);
 
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Read Float", Keywords = "read float"), Category = "Socket")
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Read Float (single-precision)", Keywords = "read float"), Category = "Socket")
 	static float Message_ReadFloat(UPARAM(ref) TArray<uint8>& Message);
 
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Read Double", Keywords = "read double"), Category = "Socket")
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Read Float (double-precision)", Keywords = "read double"), Category = "Socket")
 	static double Message_ReadDouble(UPARAM(ref) TArray<uint8>& Message);
 
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Read String", Keywords = "read string"), Category = "Socket")
