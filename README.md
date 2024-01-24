@@ -6,7 +6,7 @@ Tcp Socket Plugin for Unreal Engine 4 facilitates communication with a TCP serve
 - Multi-threading: each connection runs on its own thread
 - Detects disconnects as soon as they happen
 - Event dispatchers: OnConnected, OnDisconnected (also triggers when connection fails), OnMessageReceived
-- Serialize and deserialize basic types: Uint8, Int32, Float, String
+- Serialize and deserialize basic types: UInt8, Int32, Int64, Float (4 and 8 bytes), String
 - Free and open source under MIT license
 
 # Usage in Blueprints
