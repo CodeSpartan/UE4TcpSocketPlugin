@@ -72,33 +72,54 @@ public:
 	UFUNCTION(BlueprintPure, meta = (DisplayName = "Append Bytes", CommutativeAssociativeBinaryOperator = "true"), Category = "Socket")
 	static TArray<uint8> Concat_BytesBytes(TArray<uint8> A, TArray<uint8> B);
 
+	/** Converts a byte to an array of bytes */
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "Byte To Bytes", CompactNodeTitle = "->", Keywords = "cast convert", BlueprintAutocast), Category = "Socket")
+	static TArray<uint8> Conv_ByteToBytes(uint8 InByte);
+
+	/** Converts a (short value) integer to an array of bytes */
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "Short To Bytes", CompactNodeTitle = "->", Keywords = "cast convert", BlueprintAutocast), Category = "Socket")
+	static TArray<uint8> Conv_ShortToBytes(int32 InInt);
+
 	/** Converts an integer to an array of bytes */
 	UFUNCTION(BlueprintPure, meta = (DisplayName = "Int To Bytes", CompactNodeTitle = "->", Keywords = "cast convert", BlueprintAutocast), Category = "Socket")
 	static TArray<uint8> Conv_IntToBytes(int32 InInt);
 
-	/** Converts a string to an array of bytes */
-	UFUNCTION(BlueprintPure, meta = (DisplayName = "String To Bytes", CompactNodeTitle = "->", Keywords = "cast convert", BlueprintAutocast), Category = "Socket")
-	static TArray<uint8> Conv_StringToBytes(const FString& InStr);
+	/** Converts a long to an array of bytes */
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "Long To Bytes", CompactNodeTitle = "->", Keywords = "cast convert", BlueprintAutocast), Category = "Socket")
+	static TArray<uint8> Conv_LongToBytes(int64 InLong);
 
 	/** Converts a float to an array of bytes */
 	UFUNCTION(BlueprintPure, meta = (DisplayName = "Float To Bytes", CompactNodeTitle = "->", Keywords = "cast convert", BlueprintAutocast), Category = "Socket")
 	static TArray<uint8> Conv_FloatToBytes(float InFloat);
 
-	/** Converts a byte to an array of bytes */
-	UFUNCTION(BlueprintPure, meta = (DisplayName = "Byte To Bytes", CompactNodeTitle = "->", Keywords = "cast convert", BlueprintAutocast), Category = "Socket")
-	static TArray<uint8> Conv_ByteToBytes(uint8 InByte);
+	/** Converts a double to an array of bytes */
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "Double To Bytes", CompactNodeTitle = "->", Keywords = "cast convert", BlueprintAutocast), Category = "Socket")
+	static TArray<uint8> Conv_DoubleToBytes(double InDouble);
 
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Read Int", Keywords = "read int"), Category = "Socket")
-	static int32 Message_ReadInt(UPARAM(ref) TArray<uint8>& Message);
-
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Read Byte", Keywords = "read byte int8 uint8"), Category = "Socket")
-	static uint8 Message_ReadByte(UPARAM(ref) TArray<uint8>& Message);
+	/** Converts a string to an array of bytes */
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "String To Bytes", CompactNodeTitle = "->", Keywords = "cast convert", BlueprintAutocast), Category = "Socket")
+	static TArray<uint8> Conv_StringToBytes(const FString& InStr);
 
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Read Bytes", Keywords = "read bytes"), Category = "Socket")
 	static bool Message_ReadBytes(int32 NumBytes, UPARAM(ref) TArray<uint8>& Message, TArray<uint8>& ReturnArray);
 
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Read Byte", Keywords = "read byte int8 uint8"), Category = "Socket")
+	static uint8 Message_ReadByte(UPARAM(ref) TArray<uint8>& Message);
+
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Read Short", Keywords = "read short int32"), Category = "Socket")
+	static int32 Message_ReadShort(UPARAM(ref) TArray<uint8>& Message);
+
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Read Int", Keywords = "read int"), Category = "Socket")
+	static int32 Message_ReadInt(UPARAM(ref) TArray<uint8>& Message);
+
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Read Long", Keywords = "read long int64"), Category = "Socket")
+	static int64 Message_ReadLong(UPARAM(ref) TArray<uint8>& Message);
+
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Read Float", Keywords = "read float"), Category = "Socket")
 	static float Message_ReadFloat(UPARAM(ref) TArray<uint8>& Message);
+
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Read Double", Keywords = "read double"), Category = "Socket")
+	static double Message_ReadDouble(UPARAM(ref) TArray<uint8>& Message);
 
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Read String", Keywords = "read string"), Category = "Socket")
 	static FString Message_ReadString(UPARAM(ref) TArray<uint8>& Message, int32 StringLength);
