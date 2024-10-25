@@ -121,6 +121,9 @@ public:
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Read String", Keywords = "read string"), Category = "Socket")
 	static FString Message_ReadString(UPARAM(ref) TArray<uint8>& Message, int32 StringLength);
 
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Read Full String", Keywords = "read string"), Category = "Socket")
+	static FString Message_ReadFullString(UPARAM(ref) TArray<uint8>& Message);
+
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Socket")
 	bool isConnected(int32 ConnectionId);
 
@@ -203,6 +206,8 @@ public:
 private:
 	/* Blocking send */
 	bool BlockingSend(const uint8* Data, int32 BytesToSend);
+
+	bool IsReceivedData(const TArray<uint8>& receivedData);
 
 	/** thread should continue running */
 	FThreadSafeBool bRun = false;
