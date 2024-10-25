@@ -279,8 +279,10 @@ FString ATcpSocketConnection::Message_ReadString(TArray<uint8>& Message, int32 B
 {
 	if (BytesLength <= 0)
 	{
-		if (BytesLength < 0)
+		if (BytesLength < 0) 
+		{
 			PrintToConsole("Error in the ReadString node. BytesLength isn't a positive number.", true);
+		}
 		return FString("");
 	}
 	if (Message.Num() < BytesLength)
@@ -292,6 +294,15 @@ FString ATcpSocketConnection::Message_ReadString(TArray<uint8>& Message, int32 B
 	TArray<uint8> StringAsBytes;
 	Message_ReadBytes(BytesLength, Message, StringAsBytes);
 	std::string cstr(reinterpret_cast<const char*>(StringAsBytes.GetData()), StringAsBytes.Num());
+	return FString(UTF8_TO_TCHAR(cstr.c_str()));
+}
+
+FString ATcpSocketConnection::Message_ReadFullString(UPARAM(ref)TArray<uint8>& Message) 
+{
+	if (Message.Num() == 0) {
+		return FString();
+	}
+	std::string cstr(reinterpret_cast<const char*>(Message.GetData()), Message.Num());
 	return FString(UTF8_TO_TCHAR(cstr.c_str()));
 }
 
@@ -322,15 +333,18 @@ void ATcpSocketConnection::PrintToConsole(FString Str, bool Error)
 void ATcpSocketConnection::ExecuteOnConnected(int32 WorkerId, TWeakObjectPtr<ATcpSocketConnection> thisObj)
 {
 	if (!thisObj.IsValid())
-		return;
-
+	{
+	return;
+	}
 	ConnectedDelegate.ExecuteIfBound(WorkerId);
 }
 
 void ATcpSocketConnection::ExecuteOnDisconnected(int32 WorkerId, TWeakObjectPtr<ATcpSocketConnection> thisObj)
 {
 	if (!thisObj.IsValid())
+	{
 		return;
+	}
 
 	if (TcpWorkers.Contains(WorkerId))
 	{		
@@ -509,7 +523,7 @@ uint32 FTcpSocketWorker::Run()
 		}
 
 		// if we received data, inform the main thread about it, so it can read TQueue
-		if (bRun && receivedData.Num() != 0)
+		if (IsReceivedData(receivedData))
 		{
 			Inbox.Enqueue(receivedData);
 			AsyncTask(ENamedThreads::GameThread, [this]() {
@@ -566,6 +580,11 @@ bool FTcpSocketWorker::BlockingSend(const uint8* Data, int32 BytesToSend)
 		}
 	}
 	return true;
+}
+
+bool FTcpSocketWorker::IsReceivedData(const TArray<uint8>& receivedData) 
+{
+	return bRun && receivedData.Num() != 0;
 }
 
 void FTcpSocketWorker::SocketShutdown()
