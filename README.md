@@ -1,5 +1,5 @@
 # UE4 TCP Socket Plugin
-Tcp Socket Plugin for Unreal Engine 4 facilitates communication with a TCP server purely in blueprints. Client-only functionality. Built version can be downloaded [here](https://unrealengine.com/marketplace/en-US/product/tcp-socket-plugin).
+Tcp Socket Plugin for Unreal Engine 4 facilitates communication with a TCP server purely in blueprints. Client-only functionality. Built version can be downloaded [here](https://www.fab.com/listings/48db4522-8a05-4b91-bcf8-4217a698339b).
 
 # List of Features
 - Multiple connections
